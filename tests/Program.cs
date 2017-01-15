@@ -38,7 +38,7 @@ namespace tests
 		       .dat_trzby("2016-06-30T08:43:28+02:00")
 		       .celk_trzba(100.0)
 		       .rezim(0)
-               .pkcs12(TestData._01000003)
+               .pkcs12(TestData.EET_CA1_Playground_CZ1212121218)
 		       .pkcs12password("eet")
 		       .build();
 
