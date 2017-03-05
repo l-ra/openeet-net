@@ -40,6 +40,7 @@ namespace tests
 		       .rezim(0)
                .pkcs12(TestData.EET_CA1_Playground_CZ1212121218)
 		       .pkcs12password("eet")
+               .dumpDataPath(".")
 		       .build();
 
 		    //for receipt printing in online mode

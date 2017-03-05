@@ -63,6 +63,7 @@ namespace openeet_lite
 		internal Rezim? _rezim=Rezim.STANDARDNI;
         internal byte[] _bkp;
 		internal byte[] _pkp;
+        internal String _dump_data_path;
 
 		public Builder certificate(X509Certificate2 val) {
 			_certificate = val;
@@ -390,6 +391,15 @@ namespace openeet_lite
 			_pkcs12password=password;
             return this;
 		}
+
+        /**
+         * Dumps binary data during request processing to pathj
+         * */
+        public Builder dumpDataPath(string dumpDataPath)
+        {
+            _dump_data_path = dumpDataPath;
+            return this;
+        }
 		
 		public EetRegisterRequest build() {
 			return new EetRegisterRequest(this);
@@ -425,6 +435,7 @@ namespace openeet_lite
         Double? _urceno_cerp_zuct; public Double? urceno_cerp_zuct { get { return _urceno_cerp_zuct; } }
         Double? _cerp_zuct; public Double? cerp_zuct { get { return _cerp_zuct; } }
         Rezim? _rezim; public Rezim? rezim { get { return _rezim; } }
+        String _dump_data_path; public String dump_data_path { get { return _dump_data_path; } }
 
         byte[] _bkp; public byte[] bkp { get { return _bkp; } }
         byte[] _pkp; public byte[] pkp { get { return _pkp; } }
@@ -463,6 +474,7 @@ namespace openeet_lite
             _pkp = builder._pkp;
             _key = builder._key;
             _certificate = builder._certificate;
+            _dump_data_path = builder._dump_data_path;
 
             if (builder._pkcs12bytes != null)
             {
@@ -497,6 +509,7 @@ namespace openeet_lite
                         RSAPKCS1SignatureFormatter fmt = new RSAPKCS1SignatureFormatter(key);
                         fmt.SetHashAlgorithm("SHA256");
                         _pkp = fmt.CreateSignature(hash);
+                        dumpData("bkp-data.bin", data);
                     }
                 }
 
@@ -510,6 +523,21 @@ namespace openeet_lite
             {
                 throw new ArgumentException("error while computing codes", e);
             }
+        }
+
+        private string mkDumpPath(string fileName)
+        {
+            return dump_data_path + @"\" + fileName;
+        }
+
+        private void dumpData(string fileName, byte[] data){
+            if (dump_data_path != null)
+                File.WriteAllBytes(mkDumpPath(fileName), data);
+        }
+
+        private void dumpData(string fileName, string data)
+        {
+            dumpData(fileName, UTF8Encoding.UTF8.GetBytes(data));
         }
 
 
@@ -624,18 +652,30 @@ namespace openeet_lite
                 String digestTemplate = UTF8Encoding.UTF8.GetString(templates.digest_template);
                 String signatureTemplate = UTF8Encoding.UTF8.GetString(templates.signature_template);
 
+                dumpData("xmlTemplate.bin", templates.template);
+                dumpData("digestTemplate.bin", templates.digest_template);
+                dumpData("signatureTemplate.bin", templates.signature_template);
+
                 digestTemplate = replacePlaceholders(digestTemplate, null, null);
+                dumpData("digestTemplate-replacedPlaceholders.bin", digestTemplate);
                 digestTemplate = removeUnusedPlaceholders(digestTemplate);
+                dumpData("digestTemplate-removedUnusedPlaceholders.bin", digestTemplate);
                 SHA256Managed md = new SHA256Managed();
-                byte[] digestRaw = md.ComputeHash(UTF8Encoding.UTF8.GetBytes(digestTemplate));
+                byte[] digestInput = UTF8Encoding.UTF8.GetBytes(digestTemplate);
+                byte[] digestRaw = md.ComputeHash(digestInput);
+                dumpData("digestInput.bin", digestInput);
+                dumpData("digestRaw.bin", digestRaw);
                 String digest = Convert.ToBase64String(digestRaw);
 
 
                 signatureTemplate = replacePlaceholders(signatureTemplate, digest, null);
+                dumpData("signatureTemplate-replacedPlaceholders.bin", signatureTemplate);
                 signatureTemplate = removeUnusedPlaceholders(signatureTemplate);
+                dumpData("signatureTemplate-removedUnusedPlaceholders.bin", signatureTemplate);
                 
                 SHA256 sha256 = SHA256.Create();
                 byte[] data = UTF8Encoding.UTF8.GetBytes(signatureTemplate);
+                dumpData("signatureInput.bin", data);
                 byte[] hash = sha256.ComputeHash(data);
                 RSAPKCS1SignatureFormatter fmt = new RSAPKCS1SignatureFormatter(key);
                 fmt.SetHashAlgorithm("SHA256");
@@ -643,7 +683,9 @@ namespace openeet_lite
                 String signature = Convert.ToBase64String(signatureRaw);
 
                 xmlTemplate = replacePlaceholders(xmlTemplate, digest, signature);
+                dumpData("xmlTemplate-replacedPlaceholders.bin", xmlTemplate);
                 xmlTemplate = removeUnusedPlaceholders(xmlTemplate);
+                dumpData("xmlTemplate-removedUnusedPlaceholders.bin", xmlTemplate);
 
                 return xmlTemplate;
             }
